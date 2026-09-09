@@ -1,46 +1,43 @@
-// ================================
-// TELEGRAM BOT
-// @panterafulls_bot
-// ================================
-
-// ВСТАВЬ СЮДА ТОКЕН ОТ @BotFather
 const BOT_TOKEN = "8884039751:AAGARs0kjBwqBwWwxh6EDWEgxO0EnMRVivM";
 
-// Канал, на который пользователь должен подписаться
 const CHANNEL = "@panteraprimes";
 
-// Ссылка на видео
 const VIDEO_URL =
   "https://upload18.org/play/index/c4304e71625d";
 
 
-export default {
-  async fetch(request, env) {
+// ==========================================
+// CLOUDFLARE WORKER
+// ==========================================
 
-    // Проверяем, что Worker получает POST от Telegram
+export default {
+  async fetch(request) {
+
+    // Проверка Worker
     if (request.method !== "POST") {
-      return new Response("Bot is running");
+      return new Response("OK");
     }
 
     try {
-
       const update = await request.json();
 
-      // Обычное сообщение /start
+      console.log("UPDATE:", JSON.stringify(update));
+
+      // Обычное сообщение
       if (update.message) {
-        await handleMessage(update.message);
+        await processMessage(update.message);
       }
 
       // Нажатие inline-кнопки
       if (update.callback_query) {
-        await handleCallback(update.callback_query);
+        await processCallback(update.callback_query);
       }
 
       return new Response("OK");
 
     } catch (error) {
 
-      console.error("BOT ERROR:", error);
+      console.error("ERROR:", error);
 
       return new Response("ERROR", {
         status: 500
@@ -50,11 +47,11 @@ export default {
 };
 
 
-// ========================================
+// ==========================================
 // TELEGRAM API
-// ========================================
+// ==========================================
 
-async function telegram(method, params) {
+async function telegram(method, data) {
 
   const response = await fetch(
     `https://api.telegram.org/bot${BOT_TOKEN}/${method}`,
@@ -65,82 +62,68 @@ async function telegram(method, params) {
         "Content-Type": "application/json"
       },
 
-      body: JSON.stringify(params)
+      body: JSON.stringify(data)
     }
   );
 
-  const data = await response.json();
+  const result = await response.json();
 
-  console.log("Telegram:", method, data);
+  console.log(
+    "API",
+    method,
+    JSON.stringify(result)
+  );
 
-  return data;
+  return result;
 }
 
 
-// ========================================
+// ==========================================
 // ПРОВЕРКА ПОДПИСКИ
-// ========================================
+// ==========================================
 
-async function checkSubscription(userId) {
+async function isSubscribed(userId) {
 
-  try {
-
-    const result = await telegram(
-      "getChatMember",
-      {
-        chat_id: CHANNEL,
-        user_id: userId
-      }
-    );
-
-    if (!result.ok) {
-
-      console.error(
-        "Ошибка getChatMember:",
-        result
-      );
-
-      return false;
+  const result = await telegram(
+    "getChatMember",
+    {
+      chat_id: CHANNEL,
+      user_id: userId
     }
+  );
 
-    const status = result.result.status;
-
-    console.log(
-      "User:",
-      userId,
-      "Status:",
-      status
-    );
-
-    // Пользователь подписан
-    if (
-      status === "member" ||
-      status === "administrator" ||
-      status === "creator"
-    ) {
-      return true;
-    }
-
-    // Не подписан / вышел / заблокирован
-    return false;
-
-  } catch (error) {
+  if (!result.ok) {
 
     console.error(
-      "Ошибка проверки подписки:",
-      error
+      "getChatMember failed:",
+      JSON.stringify(result)
     );
 
     return false;
   }
+
+  const status = result.result.status;
+
+  console.log(
+    "USER:",
+    userId,
+    "STATUS:",
+    status
+  );
+
+  return (
+    status === "member" ||
+    status === "administrator" ||
+    status === "creator"
+  );
 }
 
 
-// ========================================
-// КЛАВИАТУРА ПОДПИСКИ
-// ========================================
+// ==========================================
+// КНОПКИ ДЛЯ ПОДПИСКИ
+// ==========================================
 
-function subscriptionKeyboard() {
+function subscribeButtons() {
 
   return {
 
@@ -148,15 +131,15 @@ function subscriptionKeyboard() {
 
       [
         {
-          text: "📢 Подписаться на канал",
+          text: "📢 ПОДПИСАТЬСЯ НА КАНАЛ",
           url: "https://t.me/panteraprimes"
         }
       ],
 
       [
         {
-          text: "✅ Проверить подписку",
-          callback_data: "check_subscription"
+          text: "✅ Я ПОДПИСАЛСЯ — ПРОВЕРИТЬ",
+          callback_data: "verify_subscription"
         }
       ]
 
@@ -165,11 +148,11 @@ function subscriptionKeyboard() {
 }
 
 
-// ========================================
-// КЛАВИАТУРА ВИДЕО
-// ========================================
+// ==========================================
+// КНОПКА ВИДЕО
+// ==========================================
 
-function videoKeyboard() {
+function videoButton() {
 
   return {
 
@@ -177,7 +160,7 @@ function videoKeyboard() {
 
       [
         {
-          text: "🎬 Смотреть видео",
+          text: "🎬 СМОТРЕТЬ ВИДЕО",
           url: VIDEO_URL
         }
       ]
@@ -187,11 +170,11 @@ function videoKeyboard() {
 }
 
 
-// ========================================
-// СООБЩЕНИЕ ЕСЛИ НЕ ПОДПИСАН
-// ========================================
+// ==========================================
+// ОТПРАВИТЬ ПРОСЬБУ ПОДПИСАТЬСЯ
+// ==========================================
 
-async function sendSubscriptionMessage(chatId) {
+async function sendSubscribeMessage(chatId) {
 
   await telegram(
     "sendMessage",
@@ -200,22 +183,22 @@ async function sendSubscriptionMessage(chatId) {
       chat_id: chatId,
 
       text:
-        "🔒 Доступ к видео закрыт.\n\n" +
-        "Чтобы получить доступ, подпишись на канал:\n\n" +
+        "🔒 ДОСТУП ЗАКРЫТ\n\n" +
+        "Чтобы получить видео, сначала подпишись на канал:\n\n" +
         "📢 @panteraprimes\n\n" +
-        "После подписки нажми кнопку «Проверить подписку».",
+        "После подписки нажми кнопку ниже.",
 
       reply_markup:
-        subscriptionKeyboard()
+        subscribeButtons()
 
     }
   );
 }
 
 
-// ========================================
-// СООБЩЕНИЕ ЕСЛИ ПОДПИСАН
-// ========================================
+// ==========================================
+// ОТПРАВИТЬ ДОСТУП К ВИДЕО
+// ==========================================
 
 async function sendVideoMessage(chatId) {
 
@@ -226,22 +209,22 @@ async function sendVideoMessage(chatId) {
       chat_id: chatId,
 
       text:
-        "✅ Подписка подтверждена!\n\n" +
-        "🎬 Доступ к видео открыт.",
+        "✅ ПОДПИСКА ПОДТВЕРЖДЕНА\n\n" +
+        "Доступ к видео открыт.",
 
       reply_markup:
-        videoKeyboard()
+        videoButton()
 
     }
   );
 }
 
 
-// ========================================
+// ==========================================
 // ОБРАБОТКА /START
-// ========================================
+// ==========================================
 
-async function handleMessage(message) {
+async function processMessage(message) {
 
   if (!message.from) {
     return;
@@ -251,55 +234,82 @@ async function handleMessage(message) {
     return;
   }
 
-  // Обрабатываем только /start
-  if (
-    message.text &&
-    message.text.startsWith("/start")
-  ) {
-
-    const userId =
-      message.from.id;
-
-    const chatId =
-      message.chat.id;
+  if (!message.text) {
+    return;
+  }
 
 
-    console.log(
-      "START:",
-      userId,
-      message.text
+  // Получаем команду
+  const text = message.text.trim();
+
+  if (!text.startsWith("/start")) {
+    return;
+  }
+
+
+  const userId =
+    message.from.id;
+
+  const chatId =
+    message.chat.id;
+
+
+  console.log(
+    "START FROM:",
+    userId,
+    text
+  );
+
+
+  // ======================================
+  // ВАЖНО:
+  // ВСЕГДА ПРОВЕРЯЕМ ПОДПИСКУ
+  // ======================================
+
+  const subscribed =
+    await isSubscribed(userId);
+
+
+  // ======================================
+  // НЕ ПОДПИСАН
+  // ======================================
+
+  if (!subscribed) {
+
+    await sendSubscribeMessage(
+      chatId
     );
 
-
-    // Проверяем подписку
-    const subscribed =
-      await checkSubscription(userId);
-
-
-    if (subscribed) {
-
-      await sendVideoMessage(chatId);
-
-    } else {
-
-      await sendSubscriptionMessage(chatId);
-
-    }
+    return;
   }
+
+
+  // ======================================
+  // ПОДПИСАН
+  // ======================================
+
+  await sendVideoMessage(
+    chatId
+  );
 }
 
 
-// ========================================
-// ОБРАБОТКА КНОПКИ
-// "ПРОВЕРИТЬ ПОДПИСКУ"
-// ========================================
+// ==========================================
+// ПРОВЕРКА ПО КНОПКЕ
+// ==========================================
 
-async function handleCallback(callback) {
+async function processCallback(callback) {
+
+  if (!callback.data) {
+    return;
+  }
+
 
   if (
     callback.data !==
-    "check_subscription"
+    "verify_subscription"
   ) {
+
     return;
   }
 
@@ -317,14 +327,17 @@ async function handleCallback(callback) {
 
 
   console.log(
-    "CHECK:",
+    "VERIFY:",
     userId
   );
 
 
-  // Проверяем подписку
+  // ======================================
+  // ПРОВЕРЯЕМ ПОДПИСКУ ЗАНОВО
+  // ======================================
+
   const subscribed =
-    await checkSubscription(userId);
+    await isSubscribed(userId);
 
 
   // ======================================
@@ -333,8 +346,6 @@ async function handleCallback(callback) {
 
   if (subscribed) {
 
-
-    // Убираем "часики" с кнопки
     await telegram(
       "answerCallbackQuery",
       {
@@ -347,7 +358,6 @@ async function handleCallback(callback) {
     );
 
 
-    // Меняем старое сообщение
     await telegram(
       "editMessageText",
       {
@@ -359,39 +369,36 @@ async function handleCallback(callback) {
           messageId,
 
         text:
-          "✅ Подписка подтверждена!\n\n" +
-          "🎬 Доступ к видео открыт.",
+          "✅ ПОДПИСКА ПОДТВЕРЖДЕНА\n\n" +
+          "Доступ к видео открыт.",
 
         reply_markup:
-          videoKeyboard()
+          videoButton()
 
       }
     );
 
 
+    return;
   }
+
 
   // ======================================
   // НЕ ПОДПИСАН
   // ======================================
 
-  else {
+  await telegram(
+    "answerCallbackQuery",
+    {
 
+      callback_query_id:
+        callback.id,
 
-    await telegram(
-      "answerCallbackQuery",
-      {
+      text:
+        "❌ Ты ещё не подписан на канал.",
 
-        callback_query_id:
-          callback.id,
-
-        text:
-          "❌ Ты ещё не подписан на канал.",
-
-        show_alert:
-          true
-      }
-    );
-
-  }
+      show_alert:
+        true
+    }
+  );
 }
