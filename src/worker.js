@@ -3,6 +3,9 @@ const BOT_TOKEN = "8884039751:AAGARs0kjBwqBwWwxh6EDWEgxO0EnMRVivM";
 
 const CHANNEL = "@apolloagency";
 
+const CHANNEL_URL =
+  "https://t.me/apolloagency";
+
 const VIDEO_URL =
   "https://upload18.org/play/index/c4304e71625d";
 
@@ -14,35 +17,53 @@ const VIDEO_URL =
 export default {
   async fetch(request) {
 
-    // Проверка Worker
     if (request.method !== "POST") {
       return new Response("OK");
     }
 
     try {
-      const update = await request.json();
 
-      console.log("UPDATE:", JSON.stringify(update));
+      const update =
+        await request.json();
+
+      console.log(
+        "UPDATE:",
+        JSON.stringify(update)
+      );
 
       // Обычное сообщение
       if (update.message) {
-        await processMessage(update.message);
+
+        await processMessage(
+          update.message
+        );
+
       }
 
       // Нажатие inline-кнопки
       if (update.callback_query) {
-        await processCallback(update.callback_query);
+
+        await processCallback(
+          update.callback_query
+        );
+
       }
 
       return new Response("OK");
 
     } catch (error) {
 
-      console.error("ERROR:", error);
+      console.error(
+        "ERROR:",
+        error
+      );
 
-      return new Response("ERROR", {
-        status: 500
-      });
+      return new Response(
+        "ERROR",
+        {
+          status: 500
+        }
+      );
     }
   }
 };
@@ -52,22 +73,29 @@ export default {
 // TELEGRAM API
 // ==========================================
 
-async function telegram(method, data) {
+async function telegram(
+  method,
+  data
+) {
 
-  const response = await fetch(
-    `https://api.telegram.org/bot${BOT_TOKEN}/${method}`,
-    {
-      method: "POST",
+  const response =
+    await fetch(
+      `https://api.telegram.org/bot${BOT_TOKEN}/${method}`,
+      {
+        method: "POST",
 
-      headers: {
-        "Content-Type": "application/json"
-      },
+        headers: {
+          "Content-Type":
+            "application/json"
+        },
 
-      body: JSON.stringify(data)
-    }
-  );
+        body:
+          JSON.stringify(data)
+      }
+    );
 
-  const result = await response.json();
+  const result =
+    await response.json();
 
   console.log(
     "API",
@@ -83,15 +111,22 @@ async function telegram(method, data) {
 // ПРОВЕРКА ПОДПИСКИ
 // ==========================================
 
-async function isSubscribed(userId) {
+async function isSubscribed(
+  userId
+) {
 
-  const result = await telegram(
-    "getChatMember",
-    {
-      chat_id: CHANNEL,
-      user_id: userId
-    }
-  );
+  const result =
+    await telegram(
+      "getChatMember",
+      {
+        chat_id:
+          CHANNEL,
+
+        user_id:
+          userId
+      }
+    );
+
 
   if (!result.ok) {
 
@@ -103,7 +138,10 @@ async function isSubscribed(userId) {
     return false;
   }
 
-  const status = result.result.status;
+
+  const status =
+    result.result.status;
+
 
   console.log(
     "USER:",
@@ -111,6 +149,7 @@ async function isSubscribed(userId) {
     "STATUS:",
     status
   );
+
 
   return (
     status === "member" ||
@@ -132,15 +171,21 @@ function subscribeButtons() {
 
       [
         {
-          text: "📢 ПОДПИСАТЬСЯ НА КАНАЛ",
-          url: "https://t.me/apolloagency"
+          text:
+            "📢 ПОДПИСАТЬСЯ НА КАНАЛ",
+
+          url:
+            CHANNEL_URL
         }
       ],
 
       [
         {
-          text: "✅ Я ПОДПИСАЛСЯ — ПРОВЕРИТЬ",
-          callback_data: "verify_subscription"
+          text:
+            "✅ Я ПОДПИСАЛСЯ — ПРОВЕРИТЬ",
+
+          callback_data:
+            "verify_subscription"
         }
       ]
 
@@ -161,8 +206,11 @@ function videoButton() {
 
       [
         {
-          text: "🎬 СМОТРЕТЬ ВИДЕО",
-          url: VIDEO_URL
+          text:
+            "🎬 СМОТРЕТЬ ВИДЕО",
+
+          url:
+            VIDEO_URL
         }
       ]
 
@@ -175,23 +223,25 @@ function videoButton() {
 // ОТПРАВИТЬ ПРОСЬБУ ПОДПИСАТЬСЯ
 // ==========================================
 
-async function sendSubscribeMessage(chatId) {
+async function sendSubscribeMessage(
+  chatId
+) {
 
   await telegram(
     "sendMessage",
     {
 
-      chat_id: chatId,
+      chat_id:
+        chatId,
 
       text:
         "🔒 ДОСТУП ЗАКРЫТ\n\n" +
         "Чтобы получить видео, сначала подпишись на канал:\n\n" +
-        "📢 @apolloagency\n\n" +
+        "📢 https://t.me/apolloagency\n\n" +
         "После подписки нажми кнопку ниже.",
 
       reply_markup:
         subscribeButtons()
-
     }
   );
 }
@@ -201,13 +251,16 @@ async function sendSubscribeMessage(chatId) {
 // ОТПРАВИТЬ ДОСТУП К ВИДЕО
 // ==========================================
 
-async function sendVideoMessage(chatId) {
+async function sendVideoMessage(
+  chatId
+) {
 
   await telegram(
     "sendMessage",
     {
 
-      chat_id: chatId,
+      chat_id:
+        chatId,
 
       text:
         "✅ ПОДПИСКА ПОДТВЕРЖДЕНА\n\n" +
@@ -215,7 +268,6 @@ async function sendVideoMessage(chatId) {
 
       reply_markup:
         videoButton()
-
     }
   );
 }
@@ -225,7 +277,9 @@ async function sendVideoMessage(chatId) {
 // ОБРАБОТКА /START
 // ==========================================
 
-async function processMessage(message) {
+async function processMessage(
+  message
+) {
 
   if (!message.from) {
     return;
@@ -240,8 +294,9 @@ async function processMessage(message) {
   }
 
 
-  // Получаем команду
-  const text = message.text.trim();
+  const text =
+    message.text.trim();
+
 
   if (!text.startsWith("/start")) {
     return;
@@ -250,6 +305,7 @@ async function processMessage(message) {
 
   const userId =
     message.from.id;
+
 
   const chatId =
     message.chat.id;
@@ -263,11 +319,13 @@ async function processMessage(message) {
 
 
   // ======================================
-  // ВСЕГДА ПРОВЕРЯЕМ ПОДПИСКУ
+  // ПРОВЕРЯЕМ ПОДПИСКУ
   // ======================================
 
   const subscribed =
-    await isSubscribed(userId);
+    await isSubscribed(
+      userId
+    );
 
 
   // ======================================
@@ -298,7 +356,9 @@ async function processMessage(message) {
 // ПРОВЕРКА ПО КНОПКЕ
 // ==========================================
 
-async function processCallback(callback) {
+async function processCallback(
+  callback
+) {
 
   if (!callback.data) {
     return;
@@ -337,7 +397,9 @@ async function processCallback(callback) {
   // ======================================
 
   const subscribed =
-    await isSubscribed(userId);
+    await isSubscribed(
+      userId
+    );
 
 
   // ======================================
@@ -349,6 +411,7 @@ async function processCallback(callback) {
     await telegram(
       "answerCallbackQuery",
       {
+
         callback_query_id:
           callback.id,
 
@@ -374,7 +437,6 @@ async function processCallback(callback) {
 
         reply_markup:
           videoButton()
-
       }
     );
 
