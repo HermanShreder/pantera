@@ -1,6 +1,7 @@
+```javascript
 const BOT_TOKEN = "8884039751:AAGARs0kjBwqBwWwxh6EDWEgxO0EnMRVivM";
 
-const CHANNEL = "@panteraprimes";
+const CHANNEL = "@apolloagency";
 
 const VIDEO_URL =
   "https://upload18.org/play/index/c4304e71625d";
@@ -132,7 +133,7 @@ function subscribeButtons() {
       [
         {
           text: "📢 ПОДПИСАТЬСЯ НА КАНАЛ",
-          url: "https://t.me/panteraprimes"
+          url: "https://t.me/apolloagency"
         }
       ],
 
@@ -185,7 +186,7 @@ async function sendSubscribeMessage(chatId) {
       text:
         "🔒 ДОСТУП ЗАКРЫТ\n\n" +
         "Чтобы получить видео, сначала подпишись на канал:\n\n" +
-        "📢 @panteraprimes\n\n" +
+        "📢 @apolloagency\n\n" +
         "После подписки нажми кнопку ниже.",
 
       reply_markup:
@@ -262,7 +263,6 @@ async function processMessage(message) {
 
 
   // ======================================
-  // ВАЖНО:
   // ВСЕГДА ПРОВЕРЯЕМ ПОДПИСКУ
   // ======================================
 
@@ -402,3 +402,4 @@ async function processCallback(callback) {
     }
   );
 }
+```
