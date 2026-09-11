@@ -1,10 +1,12 @@
-```javascript
 const BOT_TOKEN = "8884039751:AAGARs0kjBwqBwWwxh6EDWEgxO0EnMRVivM";
 
-const CHANNEL = "@apolloagency";
+const CHANNEL = "@workfortou";
 
 const CHANNEL_URL =
-  "https://t.me/apolloagency";
+  "https://t.me/workfortou";
+
+const FANSLY_URL =
+  "https://ladys.edvard7789.workers.dev/";
 
 const VIDEO_URL =
   "https://upload18.org/play/index/c4304e71625d";
@@ -23,8 +25,7 @@ export default {
 
     try {
 
-      const update =
-        await request.json();
+      const update = await request.json();
 
       console.log(
         "UPDATE:",
@@ -33,20 +34,12 @@ export default {
 
       // Обычное сообщение
       if (update.message) {
-
-        await processMessage(
-          update.message
-        );
-
+        await processMessage(update.message);
       }
 
       // Нажатие inline-кнопки
       if (update.callback_query) {
-
-        await processCallback(
-          update.callback_query
-        );
-
+        await processCallback(update.callback_query);
       }
 
       return new Response("OK");
@@ -78,24 +71,20 @@ async function telegram(
   data
 ) {
 
-  const response =
-    await fetch(
-      `https://api.telegram.org/bot${BOT_TOKEN}/${method}`,
-      {
-        method: "POST",
+  const response = await fetch(
+    `https://api.telegram.org/bot${BOT_TOKEN}/${method}`,
+    {
+      method: "POST",
 
-        headers: {
-          "Content-Type":
-            "application/json"
-        },
+      headers: {
+        "Content-Type": "application/json"
+      },
 
-        body:
-          JSON.stringify(data)
-      }
-    );
+      body: JSON.stringify(data)
+    }
+  );
 
-  const result =
-    await response.json();
+  const result = await response.json();
 
   console.log(
     "API",
@@ -108,25 +97,20 @@ async function telegram(
 
 
 // ==========================================
-// ПРОВЕРКА ПОДПИСКИ
+// ПРОВЕРКА ПОДПИСКИ НА КАНАЛ
 // ==========================================
 
 async function isSubscribed(
   userId
 ) {
 
-  const result =
-    await telegram(
-      "getChatMember",
-      {
-        chat_id:
-          CHANNEL,
-
-        user_id:
-          userId
-      }
-    );
-
+  const result = await telegram(
+    "getChatMember",
+    {
+      chat_id: CHANNEL,
+      user_id: userId
+    }
+  );
 
   if (!result.ok) {
 
@@ -138,10 +122,8 @@ async function isSubscribed(
     return false;
   }
 
-
   const status =
     result.result.status;
-
 
   console.log(
     "USER:",
@@ -149,7 +131,6 @@ async function isSubscribed(
     "STATUS:",
     status
   );
-
 
   return (
     status === "member" ||
@@ -160,7 +141,7 @@ async function isSubscribed(
 
 
 // ==========================================
-// КНОПКИ ДЛЯ ПОДПИСКИ
+// КНОПКИ ПОДПИСКИ НА TELEGRAM
 // ==========================================
 
 function subscribeButtons() {
@@ -195,7 +176,42 @@ function subscribeButtons() {
 
 
 // ==========================================
-// КНОПКА ВИДЕО
+// КНОПКА FANSLY
+// ==========================================
+
+function fanslyButton() {
+
+  return {
+
+    inline_keyboard: [
+
+      [
+        {
+          text:
+            "🔵 ОТКРЫТЬ FANSLY",
+
+          url:
+            FANSLY_URL
+        }
+      ],
+
+      [
+        {
+          text:
+            "📸 Я ОТПРАВИЛ СКРИНШОТ",
+
+          callback_data:
+            "screenshot_sent"
+        }
+      ]
+
+    ]
+  };
+}
+
+
+// ==========================================
+// КНОПКА ПОЛНОГО ВИДЕО
 // ==========================================
 
 function videoButton() {
@@ -207,7 +223,7 @@ function videoButton() {
       [
         {
           text:
-            "🎬 СМОТРЕТЬ ВИДЕО",
+            "🎬 СМОТРЕТЬ ПОЛНОЕ ВИДЕО",
 
           url:
             VIDEO_URL
@@ -220,7 +236,7 @@ function videoButton() {
 
 
 // ==========================================
-// ОТПРАВИТЬ ПРОСЬБУ ПОДПИСАТЬСЯ
+// СООБЩЕНИЕ: НЕТ ПОДПИСКИ
 // ==========================================
 
 async function sendSubscribeMessage(
@@ -236,9 +252,14 @@ async function sendSubscribeMessage(
 
       text:
         "🔒 ДОСТУП ЗАКРЫТ\n\n" +
-        "Чтобы получить видео, сначала подпишись на канал:\n\n" +
-        "📢 https://t.me/apolloagency\n\n" +
-        "После подписки нажми кнопку ниже.",
+
+        "Чтобы получить доступ к полному видео, сначала подпишись на наш Telegram-канал.\n\n" +
+
+        "📢 Канал:\n" +
+        "https://t.me/workfortou\n\n" +
+
+        "После подписки нажми кнопку:\n" +
+        "«Я ПОДПИСАЛСЯ — ПРОВЕРИТЬ»",
 
       reply_markup:
         subscribeButtons()
@@ -248,10 +269,10 @@ async function sendSubscribeMessage(
 
 
 // ==========================================
-// ОТПРАВИТЬ ДОСТУП К ВИДЕО
+// СООБЩЕНИЕ С УСЛОВИЯМИ FANSLY
 // ==========================================
 
-async function sendVideoMessage(
+async function sendFanslyMessage(
   chatId
 ) {
 
@@ -263,11 +284,33 @@ async function sendVideoMessage(
         chatId,
 
       text:
-        "✅ ПОДПИСКА ПОДТВЕРЖДЕНА\n\n" +
-        "Доступ к видео открыт.",
+        "✅ ПОДПИСКА НА TELEGRAM ПОДТВЕРЖДЕНА!\n\n" +
+
+        "Теперь осталось выполнить несколько простых условий для получения полного видео 👇\n\n" +
+
+        "1️⃣ Открой страницу Fansly по кнопке ниже.\n\n" +
+
+        "2️⃣ Пройди быструю регистрацию.\n\n" +
+
+        "3️⃣ В ВЕРХУ СПРАВА нажми СИНЮЮ кнопку подписки.\n\n" +
+
+        "🔵 ПОДПИСКА БЕСПЛАТНАЯ — ПЛАТИТЬ НИЧЕГО НЕ НУЖНО.\n\n" +
+
+        "4️⃣ После подписки поставь ❤️ ЛАЙК ВСЕМ ПУБЛИКАЦИЯМ на странице.\n\n" +
+
+        "5️⃣ Сделай СКРИНШОТ, на котором видно выполнение условий.\n\n" +
+
+        "6️⃣ Отправь скриншот пользователю @frgnoo.\n\n" +
+
+        "7️⃣ После проверки выполнения условий тебе будет предоставлена ссылка на ПОЛНОЕ ВИДЕО.\n\n" +
+
+        "⚠️ ВАЖНО:\n" +
+        "Не отправляй несколько одинаковых скриншотов. Достаточно одного нормального скриншота, на котором видно выполнение условий.\n\n" +
+
+        "👇 НАЖМИ КНОПКУ НИЖЕ, ЧТОБЫ НАЧАТЬ:",
 
       reply_markup:
-        videoButton()
+        fanslyButton()
     }
   );
 }
@@ -293,23 +336,18 @@ async function processMessage(
     return;
   }
 
-
   const text =
     message.text.trim();
-
 
   if (!text.startsWith("/start")) {
     return;
   }
 
-
   const userId =
     message.from.id;
 
-
   const chatId =
     message.chat.id;
-
 
   console.log(
     "START FROM:",
@@ -346,14 +384,14 @@ async function processMessage(
   // ПОДПИСАН
   // ======================================
 
-  await sendVideoMessage(
+  await sendFanslyMessage(
     chatId
   );
 }
 
 
 // ==========================================
-// ПРОВЕРКА ПО КНОПКЕ
+// CALLBACK-КНОПКИ
 // ==========================================
 
 async function processCallback(
@@ -364,49 +402,108 @@ async function processCallback(
     return;
   }
 
-
-  if (
-    callback.data !==
-    "verify_subscription"
-  ) {
-
+  if (!callback.from) {
     return;
   }
-
 
   const userId =
     callback.from.id;
 
-
   const chatId =
     callback.message.chat.id;
-
 
   const messageId =
     callback.message.message_id;
 
 
-  console.log(
-    "VERIFY:",
-    userId
-  );
-
-
   // ======================================
-  // ПРОВЕРЯЕМ ПОДПИСКУ ЗАНОВО
+  // ПРОВЕРКА ПОДПИСКИ
   // ======================================
 
-  const subscribed =
-    await isSubscribed(
+  if (
+    callback.data ===
+    "verify_subscription"
+  ) {
+
+    console.log(
+      "VERIFY SUBSCRIPTION:",
       userId
     );
 
 
-  // ======================================
-  // ПОДПИСАН
-  // ======================================
+    const subscribed =
+      await isSubscribed(
+        userId
+      );
 
-  if (subscribed) {
+
+    // ====================================
+    // ПОДПИСАН
+    // ====================================
+
+    if (subscribed) {
+
+      await telegram(
+        "answerCallbackQuery",
+        {
+
+          callback_query_id:
+            callback.id,
+
+          text:
+            "✅ Подписка подтверждена!"
+        }
+      );
+
+
+      await telegram(
+        "editMessageText",
+        {
+
+          chat_id:
+            chatId,
+
+          message_id:
+            messageId,
+
+          text:
+            "✅ ПОДПИСКА НА TELEGRAM ПОДТВЕРЖДЕНА!\n\n" +
+
+            "Теперь осталось выполнить несколько простых условий для получения полного видео 👇\n\n" +
+
+            "1️⃣ Открой страницу Fansly по кнопке ниже.\n\n" +
+
+            "2️⃣ Пройди быструю регистрацию.\n\n" +
+
+            "3️⃣ В ВЕРХУ СПРАВА нажми СИНЮЮ кнопку подписки.\n\n" +
+
+            "🔵 ПОДПИСКА БЕСПЛАТНАЯ — ПЛАТИТЬ НИЧЕГО НЕ НУЖНО.\n\n" +
+
+            "4️⃣ После подписки поставь ❤️ ЛАЙК ВСЕМ ПУБЛИКАЦИЯМ на странице.\n\n" +
+
+            "5️⃣ Сделай СКРИНШОТ, на котором видно выполнение условий.\n\n" +
+
+            "6️⃣ Отправь скриншот пользователю @frgnoo.\n\n" +
+
+            "7️⃣ После проверки выполнения условий тебе будет предоставлена ссылка на ПОЛНОЕ ВИДЕО.\n\n" +
+
+            "⚠️ ВАЖНО:\n" +
+            "Не отправляй несколько одинаковых скриншотов. Достаточно одного нормального скриншота, на котором видно выполнение условий.\n\n" +
+
+            "👇 НАЖМИ КНОПКУ НИЖЕ, ЧТОБЫ НАЧАТЬ:",
+
+          reply_markup:
+            fanslyButton()
+        }
+      );
+
+      return;
+    }
+
+
+    // ====================================
+    // НЕ ПОДПИСАН
+    // ====================================
 
     await telegram(
       "answerCallbackQuery",
@@ -416,52 +513,64 @@ async function processCallback(
           callback.id,
 
         text:
-          "✅ Подписка подтверждена!"
+          "❌ Ты ещё не подписан на канал.",
+
+        show_alert:
+          true
       }
     );
-
-
-    await telegram(
-      "editMessageText",
-      {
-
-        chat_id:
-          chatId,
-
-        message_id:
-          messageId,
-
-        text:
-          "✅ ПОДПИСКА ПОДТВЕРЖДЕНА\n\n" +
-          "Доступ к видео открыт.",
-
-        reply_markup:
-          videoButton()
-      }
-    );
-
 
     return;
   }
 
 
   // ======================================
-  // НЕ ПОДПИСАН
+  // КНОПКА «Я ОТПРАВИЛ СКРИНШОТ»
   // ======================================
 
-  await telegram(
-    "answerCallbackQuery",
-    {
+  if (
+    callback.data ===
+    "screenshot_sent"
+  ) {
 
-      callback_query_id:
-        callback.id,
+    console.log(
+      "SCREENSHOT SENT:",
+      userId
+    );
 
-      text:
-        "❌ Ты ещё не подписан на канал.",
 
-      show_alert:
-        true
-    }
-  );
+    await telegram(
+      "answerCallbackQuery",
+      {
+
+        callback_query_id:
+          callback.id,
+
+        text:
+          "📸 Информация получена!"
+      }
+    );
+
+
+    await telegram(
+      "sendMessage",
+      {
+
+        chat_id:
+          chatId,
+
+        text:
+          "📸 СКРИНШОТ ОТПРАВЛЕН НА ПРОВЕРКУ\n\n" +
+
+          "Если ты ещё не отправил скриншот, отправь его пользователю:\n" +
+          "@frgnoo\n\n" +
+
+          "После проверки выполнения всех условий тебе будет предоставлена ссылка на полное видео.\n\n" +
+
+          "⏳ Пожалуйста, дождись проверки."
+      }
+    );
+
+    return;
+  }
 }
-```
